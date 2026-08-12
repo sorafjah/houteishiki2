@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>二次方程式 プリント自動作成</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=BIZ+UDMincho&display=swap" rel="stylesheet">
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']] },
+    svg: { fontCache: 'local' },
+    startup: { typeset: false }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-svg.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+  :root{
+    --bg:#F5F7F6; --panel:#FFFFFF; --ink:#2B3A36; --sub:#6B7A76;
+    --accent:#2F8F7A; --accent-soft:#E3F3EF; --border:#D8E2DF; --warn:#D97A46;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; background:var(--bg); color:var(--ink);
+    font-family:'BIZ UDPGothic','Hiragino Sans',sans-serif; touch-action:manipulation;
+  }
+  input, textarea{ -webkit-user-select:text; user-select:text; }
+  .wrap{ max-width:1000px; margin:0 auto; padding:16px 16px 60px; }
+  h1{ font-size:clamp(20px,4vw,26px); margin:8px 0 4px; }
+  .lead{ color:var(--sub); font-size:14px; margin:0 0 18px; line-height:1.7; }
+
+  .top-row{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; }
+  .help-btn{
+    min-height:44px; padding:0 16px; border-radius:22px; border:1px solid var(--accent);
+    background:#fff; color:var(--accent); font-size:14px; font-weight:700; cursor:pointer;
+    display:flex; align-items:center; gap:6px; white-space:nowrap; flex-shrink:0;
+  }
+  .help-btn:active{ background:var(--accent-soft); }
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(43,58,54,0.55);
+    display:none; align-items:center; justify-content:center; padding:16px; z-index:400;
+  }
+  .modal-overlay.show{ display:flex; }
+  .modal-box{
+    background:#fff; border-radius:20px; max-width:600px; width:100%;
+    max-height:85vh; overflow-y:auto; padding:24px;
+  }
+  .modal-box h2{ font-size:20px; margin:0 0 14px; color:var(--ink); }
+  .modal-box h3{ font-size:14px; color:var(--accent); margin:18px 0 8px; }
+  .modal-box p, .modal-box li{ font-size:14px; line-height:1.9; color:var(--ink); }
+  .modal-box ul{ padding-left:20px; margin:6px 0; }
+  .modal-close{
+    display:block; margin:20px auto 0; min-height:44px; padding:0 28px;
+    border-radius:22px; border:none; background:var(--accent); color:#fff;
+    font-size:15px; font-weight:700; cursor:pointer;
+  }
+
+  .panel{ background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:16px; }
+  .panel h2{ font-size:15px; margin:0 0 4px; color:var(--sub); font-weight:700; }
+  .panel .panel-desc{ font-size:12px; color:var(--sub); margin:0 0 12px; }
+
+  .type-card{ border:1px solid var(--border); border-radius:12px; padding:10px 12px; margin-bottom:10px; background:#FCFDFD; }
+  .type-row{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .type-title{ font-size:14px; font-weight:700; flex-shrink:0; min-width:64px; }
+  .type-toggle{
+    width:44px; height:26px; border-radius:14px; background:var(--border);
+    position:relative; cursor:pointer; border:none; flex-shrink:0; transition:background .15s ease;
+  }
+  .type-toggle.on{ background:var(--accent); }
+  .type-toggle .knob{ position:absolute; top:2px; left:2px; width:22px; height:22px; border-radius:50%; background:#fff; transition:transform .15s ease; }
+  .type-toggle.on .knob{ transform:translateX(18px); }
+  .type-body{ display:none; }
+  .type-body.show{ display:contents; }
+
+  .settings-row{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .settings-group{ display:flex; align-items:center; gap:6px; }
+  .settings-group .g-label{ font-size:11px; color:var(--sub); white-space:nowrap; }
+
+  .stepper{ display:flex; align-items:center; gap:4px; }
+  .fontsize-stepper{ display:flex; align-items:center; gap:6px; }
+  .fontsize-stepper button{
+    width:41px; height:41px; border-radius:9px; border:1px solid var(--border);
+    background:#fff; color:var(--accent); font-size:20px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .fontsize-stepper button:active{ background:var(--accent-soft); }
+  .fontsize-stepper input{
+    width:62px; height:41px; text-align:center; border:1px solid var(--border);
+    border-radius:9px; font-size:18px;
+  }
+  .fontsize-stepper input::-webkit-outer-spin-button, .fontsize-stepper input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+  .stepper button{
+    width:28px; height:28px; border-radius:7px; border:1px solid var(--border);
+    background:#fff; color:var(--accent); font-size:14px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .stepper button:active{ background:var(--accent-soft); }
+  .stepper input{
+    width:46px; height:28px; text-align:center; border:1px solid var(--border);
+    border-radius:7px; font-size:13px;
+  }
+  .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+
+  .chip-toggle{
+    min-height:28px; padding:0 10px; border-radius:14px; border:1px solid var(--border);
+    background:#fff; color:var(--sub); font-size:11px; cursor:pointer;
+  }
+  .chip-toggle.on{ background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; }
+
+  .btn-row{ display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; align-items:center; }
+  .action-btn{
+    min-height:44px; padding:0 18px; border-radius:12px; border:none;
+    background:var(--accent); color:#fff; font-size:14px; font-weight:700; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .action-btn:active{ transform:scale(0.97); }
+  .action-btn.secondary{ background:#fff; color:var(--accent); border:1px solid var(--accent); }
+  .action-btn:disabled{ opacity:0.4; cursor:default; }
+  .status-msg{ font-size:13px; color:var(--accent); opacity:0; transition:opacity .2s ease; }
+  .status-msg.show{ opacity:1; }
+
+  .empty-list{ color:#B9C4C1; font-size:14px; text-align:center; padding:20px 0; }
+
+  /* ---- 生成後の「印刷イメージそのまま編集」エリア ---- */
+  .sheet-toolbar{
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;
+  }
+  .sheet-box{
+    background:#fff; border:1px solid var(--border); border-radius:12px; padding:24px;
+    --math-font-size:21px; --row-space:30mm;
+  }
+  .name-box{ display:flex; align-items:center; gap:6px; margin-bottom:22px; max-width:240px; }
+  .name-box .label{ font-size:14px; flex-shrink:0; }
+  .name-box .line{ flex:1; border-bottom:1.5px solid var(--ink); height:22px; }
+
+  .group-section{ margin-bottom:56px; }
+  .group-note{ margin-bottom:10px; }
+  .group-note-display{
+    font-size:16px; line-height:1.7; white-space:pre-wrap; cursor:pointer;
+    padding:5px 8px; border-radius:8px; color:var(--ink); font-weight:400;
+    font-family:'BIZ UDMincho',serif;
+  }
+  .group-note-display:active{ background:var(--accent-soft); }
+  .group-note-edit{
+    display:none; width:100%; min-height:44px; font-size:15px; padding:8px;
+    border-radius:8px; border:1px solid var(--accent); line-height:1.7; resize:vertical;
+    font-family:'BIZ UDMincho',serif;
+  }
+  .group-note.editing .group-note-display{ display:none; }
+  .group-note.editing .group-note-edit{ display:block; }
+  .group-heading{
+    display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;
+    margin-bottom:10px; padding-bottom:6px; border-bottom:2px solid var(--accent-soft);
+  }
+  .group-heading .g-name{ font-size:12px; font-weight:700; color:var(--sub); }
+
+  .sheet-grid{
+    display:grid; grid-template-columns:1fr 1fr; column-gap:24px; row-gap:var(--row-space);
+  }
+  .sheet-item{
+    display:flex; align-items:flex-start; gap:8px;
+  }
+  .sheet-item .q-num{
+    font-weight:400; font-size:15px; flex-shrink:0; padding-top:2px; min-width:26px;
+  }
+  .sheet-item .q-content{
+    flex:1; font-size:var(--math-font-size); min-width:0; overflow-x:auto;
+  }
+  .sheet-item .q-content .empty{ color:#B9C4C1; font-size:14px; font-family:'BIZ UDPGothic',sans-serif; }
+  .sheet-item .item-tools{
+    display:flex; gap:4px; flex-shrink:0; padding-top:2px;
+  }
+  .tool-btn{
+    min-width:44px; min-height:30px; padding:0 8px; border-radius:7px; border:1px solid var(--border);
+    background:#fff; color:var(--sub); font-size:11px; cursor:pointer; opacity:0.8;
+    display:flex; align-items:center; justify-content:center; white-space:nowrap;
+  }
+  .tool-btn:active{ opacity:1; background:var(--accent-soft); color:var(--accent); }
+  .tool-btn.danger:active{ background:#FBE9E1; color:var(--warn); }
+  .tool-btn:disabled{ opacity:0.3; }
+
+  .sheet-edit{
+    display:none; width:100%; min-height:60px; font-size:13px; padding:8px;
+    border-radius:8px; border:1px solid var(--accent); font-family:'SFMono-Regular',monospace;
+    line-height:1.6; resize:vertical;
+  }
+  .sheet-item.editing .q-content{ display:none; }
+  .sheet-item.editing .sheet-edit{ display:block; }
+
+  .progress-overlay{
+    position:fixed; inset:0; background:rgba(43,58,54,0.55);
+    display:none; align-items:center; justify-content:center; z-index:200;
+  }
+  .progress-overlay.show{ display:flex; }
+  .progress-box{ background:#fff; border-radius:16px; padding:24px 32px; text-align:center; }
+  .progress-box p{ margin:0; font-size:14px; }
+
+  @media (max-width:600px){
+    .sheet-grid{ grid-template-columns:1fr; }
+    .sheet-box{ padding:16px; }
+    .sheet-item .q-content{ font-size:18px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top-row">
+    <div>
+      <h1>二次方程式 プリント自動作成</h1>
+    </div>
+    <button class="help-btn" id="helpBtn">つかいかた</button>
+  </div>
+
+  <div class="panel">
+    <h2>平方根で解く問題</h2>
+
+    <div class="type-card">
+      <div class="type-row">
+        <div class="type-title">x²=a の形</div>
+        <button class="type-toggle" data-type="root"><span class="knob"></span></button>
+        <div class="type-body" data-body="root">
+        <div class="settings-row">
+          <div class="settings-group">
+            <span class="g-label">x²の係数</span>
+            <div class="stepper"><button data-step="root_amin" data-dir="-1">－</button><input id="root_amin" value="1" inputmode="numeric"><button data-step="root_amin" data-dir="1">＋</button></div>
+            <span class="g-label">〜</span>
+            <div class="stepper"><button data-step="root_amax" data-dir="-1">－</button><input id="root_amax" value="1" inputmode="numeric"><button data-step="root_amax" data-dir="1">＋</button></div>
+          </div>
+          <div class="settings-group">
+            <span class="g-label">答えの範囲</span>
+            <div class="stepper"><button data-step="root_kmin" data-dir="-1">－</button><input id="root_kmin" value="1" inputmode="numeric"><button data-step="root_kmin" data-dir="1">＋</button></div>
+            <span class="g-label">〜</span>
+            <div class="stepper"><button data-step="root_kmax" data-dir="-1">－</button><input id="root_kmax" value="9" inputmode="numeric"><button data-step="root_kmax" data-dir="1">＋</button></div>
+          </div>
+          <div class="settings-group">
+            <span class="g-label">問題数</span>
+            <div class="stepper"><button data-step="root_count" data-dir="-1">－</button><input id="root_count" value="5" inputmode="numeric"><button data-step="root_count" data-dir="1">＋</button></div>
+          </div>
+        </div>
+        <p style="font-size:11px;color:var(--sub);margin:6px 0 0;">※ 答えは必ず ±（整数）になります</p>
+      </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>因数分解で解く問題</h2>
+
+    <div class="type-card">
+      <div class="type-row">
+        <div class="type-title">x²+bx+c=0 の形</div>
+        <button class="type-toggle" data-type="factor"><span class="knob"></span></button>
+        <div class="type-body" data-body="factor">
+        <div class="settings-row">
+          <div class="settings-group">
+            <span class="g-label">解の範囲</span>
+            <div class="stepper"><button data-step="factor_pmin" data-dir="-1">－</button><input id="factor_pmin" value="1" inputmode="numeric"><button data-step="factor_pmin" data-dir="1">＋</button></div>
+            <span class="g-label">〜</span>
+            <div class="stepper"><button data-step="factor_pmax" data-dir="-1">－</button><input id="factor_pmax" value="9" inputmode="numeric"><button data-step="factor_pmax" data-dir="1">＋</button></div>
+          </div>
+          <div class="settings-group"><span class="g-label">解にマイナス</span><button class="chip-toggle on" data-flag="factor_minus">使う</button></div>
+          <div class="settings-group">
+            <span class="g-label">問題数</span>
+            <div class="stepper"><button data-step="factor_count" data-dir="-1">－</button><input id="factor_count" value="5" inputmode="numeric"><button data-step="factor_count" data-dir="1">＋</button></div>
+          </div>
+        </div>
+        <p style="font-size:11px;color:var(--sub);margin:6px 0 0;">※ (x-p)(x-q)=0 の形に因数分解できる問題を作ります</p>
+      </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>解の公式を使う問題</h2>
+
+    <div class="type-card">
+      <div class="type-row">
+        <div class="type-title">ax²+bx+c=0 の形</div>
+        <button class="type-toggle" data-type="formula"><span class="knob"></span></button>
+        <div class="type-body" data-body="formula">
+        <div class="settings-row">
+          <div class="settings-group">
+            <span class="g-label">x²の係数</span>
+            <div class="stepper"><button data-step="formula_amin" data-dir="-1">－</button><input id="formula_amin" value="2" inputmode="numeric"><button data-step="formula_amin" data-dir="1">＋</button></div>
+            <span class="g-label">〜</span>
+            <div class="stepper"><button data-step="formula_amax" data-dir="-1">－</button><input id="formula_amax" value="4" inputmode="numeric"><button data-step="formula_amax" data-dir="1">＋</button></div>
+          </div>
+          <div class="settings-group">
+            <span class="g-label">解の範囲</span>
+            <div class="stepper"><button data-step="formula_pmin" data-dir="-1">－</button><input id="formula_pmin" value="1" inputmode="numeric"><button data-step="formula_pmin" data-dir="1">＋</button></div>
+            <span class="g-label">〜</span>
+            <div class="stepper"><button data-step="formula_pmax" data-dir="-1">－</button><input id="formula_pmax" value="5" inputmode="numeric"><button data-step="formula_pmax" data-dir="1">＋</button></div>
+          </div>
+          <div class="settings-group"><span class="g-label">解にマイナス</span><button class="chip-toggle on" data-flag="formula_minus">使う</button></div>
+          <div class="settings-group">
+            <span class="g-label">問題数</span>
+            <div class="stepper"><button data-step="formula_count" data-dir="-1">－</button><input id="formula_count" value="5" inputmode="numeric"><button data-step="formula_count" data-dir="1">＋</button></div>
+          </div>
+        </div>
+        <p style="font-size:11px;color:var(--sub);margin:6px 0 0;">※ x²の係数が1でないため、解の公式を使う練習になります（答えはすべて整数です）</p>
+      </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="action-btn" id="generateBtn">問題を作る</button>
+    <span class="status-msg" id="statusMsg"></span>
+  </div>
+
+  <div class="panel" id="resultPanel" style="display:none;">
+    <h2>編集エリア</h2>
+
+    <div class="sheet-toolbar">
+      <button class="action-btn" id="printBtn">印刷する</button>
+      <button class="action-btn secondary" id="answerPreviewBtn">解答付きをプレビュー</button>
+      <button class="action-btn secondary" id="zipBtn">1問ずつの画像で一括ダウンロード</button>
+      <button class="action-btn secondary" id="downloadBtn">ダウンロード</button>
+      <div class="settings-group">
+        <span class="g-label" style="font-size:17px;">文字サイズ</span>
+        <div class="fontsize-stepper"><button data-fontsize-dir="-1">－</button><input id="fontsize_input" value="16" inputmode="numeric" readonly><button data-fontsize-dir="1">＋</button></div>
+      </div>
+      <div class="settings-group">
+        <span class="g-label" style="font-size:17px;">計算スペース</span>
+        <div class="fontsize-stepper"><button data-space-dir="-1">－</button><input id="space_input" value="30" inputmode="numeric" readonly><button data-space-dir="1">＋</button></div>
+        <span class="g-label" style="font-size:13px;">mm</span>
+      </div>
+    </div>
+
+    <div class="sheet-box" id="sheetBox">
+      <div class="name-box"><span class="label">名前</span><span class="line"></span></div>
+      <div id="sheetArea"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="helpModal">
+  <div class="modal-box">
+    <h2>二次方程式 プリント自動作成の使い方</h2>
+    <p>問題タイプを選んで条件を決めると、自動でたくさんの二次方程式の問題が作られます。作った後は画面上でそのまま編集し、印刷やダウンロードができます。</p>
+
+    <h3>① 問題タイプを選ぶ</h3>
+    <p>「平方根で解く問題」「因数分解で解く問題」「解の公式を使う問題」のスイッチをオンにすると、その下に条件（数の範囲・マイナスの有無・問題数など）が1行で表示されます。数字は－＋ボタンか直接入力で変更できます。</p>
+
+    <h3>② 問題を作る</h3>
+    <p>「問題を作る」を押すと、選んだ条件に沿って問題が自動生成され、そのまま編集できる画面が表示されます。</p>
+
+    <h3>③ 編集する</h3>
+    <ul>
+      <li>各問題の✎ボタンで内容を直接編集できます</li>
+      <li>⬇ボタンでその問題だけを画像として保存できます</li>
+      <li>各ジャンルの上にある文章もタップして自由に編集できます</li>
+      <li>🗑ボタンで不要な問題を削除できます</li>
+    </ul>
+
+    <h3>④ 印刷・保存する</h3>
+    <ul>
+      <li>印刷する：印刷用ページを新しいタブで開きます</li>
+      <li>解答付きをプレビュー：答え付きのプリントを別画面で確認できます</li>
+      <li>1問ずつの画像で一括ダウンロード：全問題を個別のPNG画像にしてZIPでまとめて保存します</li>
+      <li>ダウンロード：印刷用のHTMLファイルとして保存します</li>
+    </ul>
+
+    <h3>⑤ 文字サイズ・計算スペース</h3>
+    <p>「文字サイズ」の－＋ボタンで、数式の大きさを変えられます。「計算スペース」の－＋ボタンでは、問題と問題の間の余白（生徒が計算を書く場所）をmm単位で調整できます。どちらも画面表示・印刷の両方に反映されます。</p>
+
+    <button class="modal-close" id="helpCloseBtn">とじる</button>
+  </div>
+</div>
+
+<div class="progress-overlay" id="progressOverlay">
+  <div class="progress-box"><p id="progressText">作っています…</p></div>
+</div>
+
+<script>
+(function(){
+  const generateBtn = document.getElementById('generateBtn');
+  const statusMsg = document.getElementById('statusMsg');
+  const resultPanel = document.getElementById('resultPanel');
+  const sheetArea = document.getElementById('sheetArea');
+  const printBtn = document.getElementById('printBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const zipBtn = document.getElementById('zipBtn');
+  const answerPreviewBtn = document.getElementById('answerPreviewBtn');
+  const progressOverlay = document.getElementById('progressOverlay');
+  const progressText = document.getElementById('progressText');
+
+  // ---- 使い方モーダル ----
+  const helpBtn = document.getElementById('helpBtn');
+  const helpModal = document.getElementById('helpModal');
+  const helpCloseBtn = document.getElementById('helpCloseBtn');
+  function openHelp(){ helpModal.classList.add('show'); }
+  function closeHelp(){ helpModal.classList.remove('show'); }
+  helpBtn.addEventListener('click', openHelp);
+  helpCloseBtn.addEventListener('click', closeHelp);
+  helpModal.addEventListener('click', (e)=>{ if(e.target === helpModal) closeHelp(); });
+  window.addEventListener('load', openHelp);
+
+  let problems = []; // { type, raw, answer }
+  let groupNotes = {};
+  const enabledTypes = {};
+  const flags = {};
+
+  function escapeHtmlText(text){
+    return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  const typeLabels = { root:'平方根で解く問題', factor:'因数分解で解く問題', formula:'解の公式を使う問題' };
+
+  document.querySelectorAll('.type-toggle').forEach(btn=>{
+    const type = btn.dataset.type;
+    enabledTypes[type] = false;
+    btn.addEventListener('click', ()=>{
+      enabledTypes[type] = !enabledTypes[type];
+      btn.classList.toggle('on', enabledTypes[type]);
+      const body = document.querySelector('[data-body="'+type+'"]');
+      if(body) body.classList.toggle('show', enabledTypes[type]);
+    });
+  });
+
+  document.querySelectorAll('.chip-toggle').forEach(btn=>{
+    const key = btn.dataset.flag;
+    flags[key] = true;
+    btn.addEventListener('click', ()=>{
+      flags[key] = !flags[key];
+      btn.classList.toggle('on', flags[key]);
+      btn.textContent = flags[key] ? '使う' : '使わない';
+    });
+  });
+
+  document.querySelectorAll('.stepper button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.step;
+      const dir = parseInt(btn.dataset.dir, 10);
+      const input = document.getElementById(id);
+      let v = parseInt(input.value, 10) || 0;
+      v += dir;
+      if(v < 0) v = 0;
+      input.value = v;
+    });
+  });
+  document.querySelectorAll('.stepper input').forEach(inp=>{
+    inp.addEventListener('input', ()=>{ inp.value = inp.value.replace(/[^0-9\-]/g,''); });
+  });
+
+  function getNum(id){ return parseInt(document.getElementById(id).value, 10) || 0; }
+  function randInt(min, max){ if(min>max){ const t=min; min=max; max=t; } return Math.floor(Math.random()*(max-min+1))+min; }
+  function randIntNonZero(min, max){
+    if(min > max){ const t=min; min=max; max=t; }
+    let v, tries=0;
+    do{ v = randInt(min,max); tries++; }while(v===0 && tries<50);
+    return v===0 ? 1 : v;
+  }
+  function leadStr(n){ return n<0 ? '-'+Math.abs(n) : String(n); }
+  function nextStr(n){ return n<0 ? ('-'+Math.abs(n)) : ('+'+n); }
+  function coefTerm(n, varName, isFirst){
+    if(n===0) return isFirst ? '0' : '';
+    const sign = n<0 ? '-' : (isFirst?'':'+');
+    const mag = Math.abs(n);
+    const magStr = mag===1 ? '' : String(mag);
+    return sign+magStr+varName;
+  }
+
+  // ---- 生成ロジック ----
+  function genRoot(){
+    const amin=getNum('root_amin'), amax=getNum('root_amax');
+    const kmin=getNum('root_kmin'), kmax=getNum('root_kmax');
+    const a = randIntNonZero(amin, amax);
+    const k = randIntNonZero(kmin, kmax);
+    const b = a * k * k;
+    const raw = (a===1 ? 'x^2' : a+'x^2') + '=' + b;
+    const answer = 'x=±'+k;
+    return { raw, answer };
+  }
+
+  function genFactor(){
+    const pmin=getNum('factor_pmin'), pmax=getNum('factor_pmax');
+    const lo = flags.factor_minus ? -pmax : pmin;
+    const p = randInt(lo, pmax);
+    const q = randInt(lo, pmax);
+    const b = -(p+q);
+    const c = p*q;
+    const bTerm = b===0 ? '' : coefTerm(b,'x',false);
+    const cTerm = c===0 ? '' : nextStr(c);
+    const raw = 'x^2'+bTerm+cTerm+'=0';
+    const sorted = [p,q].sort((x,y)=>x-y);
+    const answer = p===q ? ('x='+p+'（重解）') : ('x='+sorted[0]+', '+sorted[1]);
+    return { raw, answer };
+  }
+
+  function genFormula(){
+    const amin=getNum('formula_amin'), amax=getNum('formula_amax');
+    const pmin=getNum('formula_pmin'), pmax=getNum('formula_pmax');
+    const lo = flags.formula_minus ? -pmax : pmin;
+    const a = randIntNonZero(amin, amax);
+    const p = randInt(lo, pmax);
+    const q = randInt(lo, pmax);
+    const b = -a*(p+q);
+    const c = a*p*q;
+    const bTerm = b===0 ? '' : coefTerm(b,'x',false);
+    const cTerm = c===0 ? '' : nextStr(c);
+    const raw = (a===1?'x^2':a+'x^2')+bTerm+cTerm+'=0';
+    const sorted = [p,q].sort((x,y)=>x-y);
+    const answer = p===q ? ('x='+p+'（重解）') : ('x='+sorted[0]+', '+sorted[1]);
+    return { raw, answer };
+  }
+
+  const generators = { root: genRoot, factor: genFactor, formula: genFormula };
+  const countIds = { root:'root_count', factor:'factor_count', formula:'formula_count' };
+
+  function showStatus(text){
+    statusMsg.textContent = text;
+    statusMsg.classList.add('show');
+    setTimeout(()=>{ statusMsg.classList.remove('show'); }, 2200);
+  }
+
+  generateBtn.addEventListener('click', ()=>{
+    const activeTypes = Object.keys(enabledTypes).filter(t=>enabledTypes[t]);
+    if(activeTypes.length === 0){ showStatus('問題タイプを1つ以上オンにしてください'); return; }
+    let newProblems = [];
+    activeTypes.forEach(type=>{
+      const count = getNum(countIds[type]);
+      for(let i=0;i<count;i++){
+        const g = generators[type]();
+        g.type = type;
+        newProblems.push(g);
+      }
+    });
+    if(newProblems.length === 0){ showStatus('問題数が0になっています'); return; }
+    problems = newProblems;
+    groupNotes = {};
+    activeTypes.forEach((type, j)=>{ groupNotes[type] = (j+1)+'・次の二次方程式を解こう'; });
+    renderSheet();
+    showStatus('問題を作りました');
+    resultPanel.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+
+  // ---- LaTeX変換（数式部分） ----
+  function findMatchingParen(str, openIdx, openCh, closeCh){
+    openCh = openCh||'('; closeCh = closeCh||')';
+    let depth=0;
+    for(let i=openIdx;i<str.length;i++){
+      if(str[i]===openCh) depth++;
+      else if(str[i]===closeCh){ depth--; if(depth===0) return i; }
+    }
+    return -1;
+  }
+  function toLatex(text){
+    if(!text) return '';
+    let result=''; let i=0;
+    while(i<text.length){
+      const ch = text[i];
+      if(ch==='√' && text[i+1]==='('){
+        const c = findMatchingParen(text,i+1);
+        if(c!==-1){ result += '\\sqrt{'+toLatex(text.slice(i+2,c))+'}'; i=c+1; continue; }
+      }
+      if(ch==='√' && /[0-9]/.test(text[i+1]||'')){
+        let j=i+1; while(j<text.length && /[0-9]/.test(text[j])) j++;
+        result += '\\sqrt{'+text.slice(i+1,j)+'}'; i=j; continue;
+      }
+      if(ch==='√'){ result+='\\sqrt{}'; i++; continue; }
+      if(ch==='^' && text[i+1]==='('){
+        const c = findMatchingParen(text,i+1);
+        if(c!==-1){ result += '^{'+toLatex(text.slice(i+2,c))+'}'; i=c+1; continue; }
+      }
+      if(ch==='^' && text[i+1]){ result += '^{'+text[i+1]+'}'; i+=2; continue; }
+      if(ch==='±'){ result+='\\pm '; i++; continue; }
+      if(ch==='('){
+        const c = findMatchingParen(text,i);
+        if(c!==-1 && text[c+1]==='/' && text[c+2]==='('){
+          const dc = findMatchingParen(text,c+2);
+          if(dc!==-1){
+            result += '\\frac{'+toLatex(text.slice(i+1,c))+'}{'+toLatex(text.slice(c+3,dc))+'}';
+            i = dc+1; continue;
+          }
+        }
+        result += '('; i++; continue;
+      }
+      if(ch==='×'){ result+='\\times '; i++; continue; }
+      if(ch==='÷'){ result+='\\div '; i++; continue; }
+      result += ch; i++;
+    }
+    return result;
+  }
+
+  function isJapaneseLine(line){
+    return /[\u3040-\u30FF\u4E00-\u9FFF]/.test(line);
+  }
+  function lineToLatex(line){
+    if(isJapaneseLine(line)){
+      const escaped = line.replace(/\\/g,'\\\\').replace(/\{/g,'\\{').replace(/\}/g,'\\}');
+      return '\\text{'+escaped+'}';
+    }
+    return toLatex(line);
+  }
+
+  function renderMath(container, rawText){
+    if(!rawText || !rawText.trim()){
+      container.innerHTML = '<span class="empty">-</span>';
+      return;
+    }
+    const lines = rawText.split('\n');
+    container.innerHTML = lines.map(line=>{
+      if(line.trim()===''){ return '<div style="height:0.7em;"></div>'; }
+      return '<div>$$'+lineToLatex(line)+'$$</div>';
+    }).join('');
+    if(window.MathJax && window.MathJax.typesetPromise){
+      window.MathJax.typesetClear && window.MathJax.typesetClear([container]);
+      window.MathJax.typesetPromise([container]).catch(()=>{});
+    }
+  }
+
+  // ---- メイン編集エリアの描画 ----
+  function renderSheet(){
+    resultPanel.style.display = 'block';
+    if(problems.length===0){
+      sheetArea.innerHTML = '<div class="empty-list">まだ問題がありません</div>';
+      return;
+    }
+    const groups = [];
+    problems.forEach((p, idx)=>{
+      const last = groups[groups.length-1];
+      if(last && last.type === p.type){ last.items.push(idx); }
+      else { groups.push({ type: p.type, items:[idx] }); }
+    });
+
+    sheetArea.innerHTML = groups.map(g=>{
+      const itemsHtml = g.items.map(idx=>{
+        return '<div class="sheet-item" data-idx="'+idx+'">' +
+          '<span class="q-num">('+(idx+1)+')</span>' +
+          '<span class="q-content" id="mainPreview_'+idx+'"></span>' +
+          '<textarea class="sheet-edit" id="mainEdit_'+idx+'"></textarea>' +
+          '<span class="item-tools">' +
+            '<button class="tool-btn edit-btn" title="編集">編集</button>' +
+            '<button class="tool-btn dl-btn" title="画像で保存">保存</button>' +
+            '<button class="tool-btn danger del-btn" title="削除">削除</button>' +
+          '</span>' +
+        '</div>';
+      }).join('');
+      return '<div class="group-section" data-type="'+g.type+'">' +
+        '<div class="group-note" data-type="'+g.type+'">' +
+          '<div class="group-note-display" id="groupNoteDisplay_'+g.type+'"></div>' +
+          '<textarea class="group-note-edit" id="groupNoteEdit_'+g.type+'" placeholder="1・次の二次方程式を解こう"></textarea>' +
+        '</div>' +
+        '<div class="group-heading">' +
+          '<span class="g-name">'+typeLabels[g.type]+'（'+g.items.length+'問）</span>' +
+        '</div>' +
+        '<div class="sheet-grid">'+itemsHtml+'</div>' +
+      '</div>';
+    }).join('');
+
+    problems.forEach((p, idx)=>{
+      renderMath(document.getElementById('mainPreview_'+idx), p.raw);
+      document.getElementById('mainEdit_'+idx).value = p.raw;
+    });
+
+    groups.forEach(g=>{
+      const display = document.getElementById('groupNoteDisplay_'+g.type);
+      const editEl = document.getElementById('groupNoteEdit_'+g.type);
+      const text = groupNotes[g.type] || '';
+      display.innerHTML = text.trim() ? escapeHtmlText(text).replace(/\n/g,'<br>') : '<span style="color:#B9C4C1;font-weight:400;">＋ タップして文章を追加</span>';
+      editEl.value = text;
+    });
+  }
+
+  // ---- 数式（複数行対応）をcanvasに描画する共通ヘルパー ----
+  async function renderTextToCanvas(text, fontSizePx, hiResScale){
+    hiResScale = hiResScale || 4;
+    const lines = (text||'').split('\n');
+    const tempDiv = document.createElement('div');
+    tempDiv.style.position='fixed'; tempDiv.style.left='-9999px'; tempDiv.style.top='0';
+    tempDiv.style.fontSize = fontSizePx+'px';
+    tempDiv.style.display='inline-block';
+    document.body.appendChild(tempDiv);
+
+    const pieces = [];
+    for(const line of lines){
+      if(line.trim()===''){ pieces.push({ blank:true, height: fontSizePx*0.7 }); continue; }
+      tempDiv.innerHTML = '$$'+lineToLatex(line)+'$$';
+      if(window.MathJax.typesetClear) window.MathJax.typesetClear([tempDiv]);
+      await window.MathJax.typesetPromise([tempDiv]);
+      const svgEl = tempDiv.querySelector('svg');
+      if(!svgEl){ pieces.push(null); continue; }
+      const rect = svgEl.getBoundingClientRect();
+      const w = Math.max(rect.width,4), h = Math.max(rect.height,4);
+      const svgClone = svgEl.cloneNode(true);
+      svgClone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+      svgClone.setAttribute('width', w); svgClone.setAttribute('height', h);
+      const svgStr = new XMLSerializer().serializeToString(svgClone);
+      const blob = new Blob([svgStr], {type:'image/svg+xml;charset=utf-8'});
+      const url = URL.createObjectURL(blob);
+      const piece = await new Promise((resolve, reject)=>{
+        const img = new Image();
+        img.onload = ()=>{
+          const c = document.createElement('canvas');
+          c.width = w*hiResScale; c.height = h*hiResScale;
+          const ctx = c.getContext('2d');
+          ctx.scale(hiResScale, hiResScale);
+          ctx.drawImage(img, 0, 0, w, h);
+          URL.revokeObjectURL(url);
+          resolve({ canvas:c, width:w, height:h });
+        };
+        img.onerror = reject;
+        img.src = url;
+      });
+      pieces.push(piece);
+    }
+    document.body.removeChild(tempDiv);
+
+    const gap = 4;
+    const maxW = Math.max.apply(null, pieces.map(p=> (p && !p.blank) ? p.width : 0).concat([10]));
+    let totalH = 0;
+    pieces.forEach(p=>{ totalH += (p ? p.height : fontSizePx) + gap; });
+    totalH -= gap;
+    if(totalH <= 0 || maxW <= 0) return null;
+
+    const composite = document.createElement('canvas');
+    composite.width = Math.max(1, Math.round(maxW*hiResScale));
+    composite.height = Math.max(1, Math.round(totalH*hiResScale));
+    const cctx = composite.getContext('2d');
+    cctx.scale(hiResScale, hiResScale);
+    cctx.fillStyle = '#ffffff';
+    cctx.fillRect(0, 0, maxW, totalH);
+    let y = 0;
+    pieces.forEach(p=>{
+      if(p && !p.blank){
+        cctx.drawImage(p.canvas, 0, y, p.width, p.height);
+        y += p.height + gap;
+      } else {
+        y += (p ? p.height : fontSizePx) + gap;
+      }
+    });
+    return { canvas: composite, width: maxW, height: totalH };
+  }
+
+  async function buildImagesFor(rawList, fontSizePx){
+    const results = [];
+    for(let idx=0; idx<rawList.length; idx++){
+      progressText.textContent = '画像を作っています…（'+(idx+1)+' / '+rawList.length+'）';
+      const r = await renderTextToCanvas(rawList[idx], fontSizePx, 4);
+      results.push(r ? { dataUrl: r.canvas.toDataURL('image/png'), width:r.width, height:r.height } : null);
+    }
+    return results;
+  }
+
+  function downloadCanvasPng(canvas, filename){
+    canvas.toBlob(blob=>{
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  }
+
+  // ---- グループごとの自由記述欄（クリックで編集） ----
+  sheetArea.addEventListener('click', (e)=>{
+    const noteDisplay = e.target.closest('.group-note-display');
+    if(noteDisplay){
+      const noteBox = noteDisplay.closest('.group-note');
+      const type = noteBox.dataset.type;
+      const editEl = document.getElementById('groupNoteEdit_'+type);
+      editEl.value = groupNotes[type] || '';
+      noteBox.classList.add('editing');
+      editEl.focus();
+    }
+  });
+  sheetArea.addEventListener('blur', (e)=>{
+    if(!e.target.classList || !e.target.classList.contains('group-note-edit')) return;
+    const noteBox = e.target.closest('.group-note');
+    const type = noteBox.dataset.type;
+    groupNotes[type] = e.target.value;
+    noteBox.classList.remove('editing');
+    const display = document.getElementById('groupNoteDisplay_'+type);
+    const text = groupNotes[type] || '';
+    display.innerHTML = text.trim() ? escapeHtmlText(text).replace(/\n/g,'<br>') : '<span style="color:#B9C4C1;font-weight:400;">＋ タップして文章を追加</span>';
+  }, true);
+
+  // ---- 編集エリアのイベント（各問題ボタン） ----
+  sheetArea.addEventListener('click', async (e)=>{
+    const item = e.target.closest('.sheet-item');
+    if(!item) return;
+    const idx = parseInt(item.dataset.idx, 10);
+
+    if(e.target.closest('.del-btn')){
+      problems.splice(idx,1);
+      renderSheet();
+      return;
+    }
+    if(e.target.closest('.edit-btn')){
+      const btn = e.target.closest('.edit-btn');
+      const isEditing = item.classList.contains('editing');
+      if(isEditing){
+        const newVal = document.getElementById('mainEdit_'+idx).value;
+        problems[idx].raw = newVal;
+        item.classList.remove('editing');
+        renderMath(document.getElementById('mainPreview_'+idx), newVal);
+        btn.textContent = '編集';
+      } else {
+        item.classList.add('editing');
+        btn.textContent = '完了';
+      }
+      return;
+    }
+    if(e.target.closest('.dl-btn')){
+      const btn = e.target.closest('.dl-btn');
+      btn.disabled = true;
+      try{
+        const r = await renderTextToCanvas(problems[idx].raw, 28, 4);
+        if(r) downloadCanvasPng(r.canvas, 'mondai_'+(idx+1)+'.png');
+        showStatus('画像を保存しました');
+      }catch(err){ showStatus('作成に失敗しました'); }
+      btn.disabled = false;
+      return;
+    }
+  });
+
+  // ---- 印刷用HTML生成 ----
+  // 計算スペース（問題の下の余白）は教員が調整できるようにmm指定で受け取る
+  function buildPrintStyle(spaceMm){
+    return '*{box-sizing:border-box;}\n' +
+    'body{font-family:"BIZ UDPGothic",sans-serif;color:#000;margin:0;padding:16px;background:#fff;}\n' +
+    '.sheet{max-width:190mm;margin:0 auto;}\n' +
+    '.name-box{display:flex;align-items:center;gap:6px;margin-bottom:22px;max-width:220px;}\n' +
+    '.name-box .label{font-size:12pt;}\n' +
+    '.name-box .line{flex:1;border-bottom:1.5px solid #000;height:22px;}\n' +
+    '.group-block{margin-bottom:'+(spaceMm+8)+'mm;}\n' +
+    '.note-text{font-size:13pt;font-weight:400;line-height:1.7;white-space:pre-wrap;margin-bottom:12px;font-family:"BIZ UDMincho",serif;}\n' +
+    '.grid{display:grid;grid-template-columns:1fr 1fr;column-gap:20px;row-gap:'+spaceMm+'mm;}\n' +
+    '.problem{display:flex;align-items:flex-start;gap:8px;font-size:12pt;}\n' +
+    '.q-num{font-weight:400;min-width:22px;flex-shrink:0;}\n' +
+    '.q-body{flex-shrink:0;display:flex;align-items:center;}\n' +
+    '.answer-line{color:#000;letter-spacing:2px;flex-shrink:0;}\n' +
+    '.a-body{flex-shrink:0;display:flex;align-items:center;}\n';
+  }
+
+  function buildGroupedSheetHtml(qImages, aImages, showAnswer){
+    const groups = [];
+    problems.forEach((p, idx)=>{
+      const last = groups[groups.length-1];
+      if(last && last.type === p.type){ last.items.push(idx); }
+      else { groups.push({ type: p.type, items:[idx] }); }
+    });
+
+    return groups.map(g=>{
+      const note = groupNotes[g.type] || '';
+      const noteHtml = note.trim() ? '<div class="note-text">'+escapeHtmlText(note).replace(/\n/g,'<br>')+'</div>' : '';
+      const itemsHtml = g.items.map(idx=>{
+        const qImg = qImages[idx]
+          ? '<img src="'+qImages[idx].dataUrl+'" style="height:'+qImages[idx].height+'px;width:'+qImages[idx].width+'px;">'
+          : '<span>（表示エラー）</span>';
+        let tail;
+        if(showAnswer){
+          const aImg = aImages[idx]
+            ? '<img src="'+aImages[idx].dataUrl+'" style="height:'+aImages[idx].height+'px;width:'+aImages[idx].width+'px;">'
+            : '<span>-</span>';
+          tail = '<span class="a-body">'+aImg+'</span>';
+        } else {
+          tail = '<span class="answer-line">　　　　　</span>';
+        }
+        return '<div class="problem">' +
+          '<span class="q-num">('+(idx+1)+')</span>' +
+          '<span class="q-body">'+qImg+'</span>' +
+          tail +
+        '</div>';
+      }).join('\n');
+      return '<div class="group-block">'+noteHtml+'<div class="grid">'+itemsHtml+'</div></div>';
+    }).join('\n');
+  }
+
+  function buildPrintHtml(qImages, aImages, showAnswer){
+    const bodyHtml = buildGroupedSheetHtml(qImages, aImages, showAnswer);
+    const titleText = showAnswer ? '二次方程式 プリント（解答）' : '二次方程式 プリント';
+    return '<!DOCTYPE html>\n<html lang="ja"><head><meta charset="UTF-8">\n' +
+      '<title>'+titleText+'</title>\n' +
+      '<link rel="preconnect" href="https://fonts.googleapis.com">\n' +
+      '<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic&family=BIZ+UDMincho&display=swap" rel="stylesheet">\n' +
+      '<style>\n' + buildPrintStyle(SPACE_MM) +
+      '.print-btn-area{text-align:center;margin:0 0 16px;}\n' +
+      '.print-btn{min-height:44px;padding:0 24px;border-radius:12px;border:none;background:#2F8F7A;color:#fff;font-size:15px;font-weight:bold;cursor:pointer;}\n' +
+      '@media print{ body{padding:0;} @page{size:A4;margin:15mm 10mm;} .print-btn-area{display:none;} }\n' +
+      '</style></head>\n' +
+      '<body>\n' +
+      '<div class="print-btn-area"><button class="print-btn" onclick="window.print()">印刷する</button></div>\n' +
+      '<div class="sheet">\n' +
+      '  <div class="name-box"><span class="label">名前</span><span class="line"></span></div>\n' +
+      bodyHtml + '\n' +
+      '</div>\n' +
+      '</body></html>';
+  }
+
+  function downloadHtml(content, filename){
+    const blob = new Blob([content], {type:'text/html;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  function openHtmlInNewTab(content){
+    const blob = new Blob([content], {type:'text/html;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.target = '_blank'; a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  }
+
+  let FONT_SIZE_PX = 16;
+  let SPACE_MM = 30;
+  const sheetBox = document.getElementById('sheetBox');
+  const fontsizeInput = document.getElementById('fontsize_input');
+  const spaceInput = document.getElementById('space_input');
+  function applyFontSize(){
+    fontsizeInput.value = FONT_SIZE_PX;
+    sheetBox.style.setProperty('--math-font-size', FONT_SIZE_PX + 'px');
+  }
+  function applySpace(){
+    spaceInput.value = SPACE_MM;
+    sheetBox.style.setProperty('--row-space', SPACE_MM + 'mm');
+  }
+  document.querySelectorAll('.fontsize-stepper button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(btn.dataset.fontsizeDir !== undefined){
+        const dir = parseInt(btn.dataset.fontsizeDir, 10);
+        FONT_SIZE_PX = Math.max(14, Math.min(48, FONT_SIZE_PX + dir*2));
+        applyFontSize();
+      }
+      if(btn.dataset.spaceDir !== undefined){
+        const dir = parseInt(btn.dataset.spaceDir, 10);
+        SPACE_MM = Math.max(5, Math.min(80, SPACE_MM + dir*5));
+        applySpace();
+      }
+    });
+  });
+  applyFontSize();
+  applySpace();
+
+  async function buildOutput(withAnswer){
+    if(problems.length === 0) return null;
+    progressOverlay.classList.add('show');
+    try{
+      const qImages = await buildImagesFor(problems.map(p=>p.raw), FONT_SIZE_PX);
+      let aImages = [];
+      if(withAnswer){
+        aImages = await buildImagesFor(problems.map(p=>p.answer), FONT_SIZE_PX);
+      }
+      return { qImages, aImages };
+    } catch(err){
+      showStatus('作成中にエラーが起きました');
+      return null;
+    } finally {
+      progressOverlay.classList.remove('show');
+    }
+  }
+
+  printBtn.addEventListener('click', async ()=>{
+    const result = await buildOutput(false);
+    if(!result) return;
+    openHtmlInNewTab(buildPrintHtml(result.qImages, result.aImages, false));
+  });
+
+  downloadBtn.addEventListener('click', async ()=>{
+    const result = await buildOutput(false);
+    if(!result) return;
+    downloadHtml(buildPrintHtml(result.qImages, result.aImages, false), '二次方程式プリント.html');
+    showStatus('保存しました');
+  });
+
+  zipBtn.addEventListener('click', async ()=>{
+    if(problems.length === 0) return;
+    progressOverlay.classList.add('show');
+    try{
+      const zip = new JSZip();
+      for(let i=0;i<problems.length;i++){
+        progressText.textContent = '画像を作っています…（'+(i+1)+' / '+problems.length+'）';
+        const r = await renderTextToCanvas(problems[i].raw, 28, 4);
+        if(r){
+          const blob = await new Promise(res=> r.canvas.toBlob(res, 'image/png'));
+          if(blob) zip.file('mondai_'+String(i+1).padStart(2,'0')+'.png', blob);
+        }
+      }
+      progressText.textContent = 'ZIPを作っています…';
+      const zipBlob = await zip.generateAsync({type:'blob'});
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'mondai_gazou.zip';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showStatus('ZIPを保存しました');
+    }catch(err){
+      showStatus('作成に失敗しました');
+    } finally {
+      progressOverlay.classList.remove('show');
+    }
+  });
+
+  // ---- 解答付きプレビュー（モーダル） ----
+  function openAnswerPreviewModal(qImages, aImages){
+    const bodyHtml = buildGroupedSheetHtml(qImages, aImages, true);
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(43,58,54,0.6);display:flex;align-items:center;justify-content:center;z-index:300;padding:16px;';
+    overlay.innerHTML =
+      '<div style="background:#fff;border-radius:16px;max-width:800px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">' +
+        '<div style="padding:14px 18px;border-bottom:1px solid #D8E2DF;display:flex;justify-content:space-between;align-items:center;">' +
+          '<strong style="font-size:15px;">解答付きプレビュー</strong>' +
+          '<button id="apCloseX" style="min-width:36px;min-height:36px;border:none;background:none;font-size:18px;cursor:pointer;color:#6B7A76;">✕</button>' +
+        '</div>' +
+        '<div style="overflow-y:auto;padding:20px;flex:1;background:#F5F7F6;">' +
+          '<div class="sheet" style="background:#fff;padding:20px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.08);">' +
+            '<style>'+buildPrintStyle(SPACE_MM)+'</style>' +
+            '<div class="name-box"><span class="label">名前</span><span class="line"></span></div>' +
+            bodyHtml +
+          '</div>' +
+        '</div>' +
+        '<div style="padding:14px 18px;border-top:1px solid #D8E2DF;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">' +
+          '<button id="apCancelBtn" style="min-height:44px;padding:0 18px;border-radius:12px;border:1px solid #2F8F7A;background:#fff;color:#2F8F7A;font-weight:700;cursor:pointer;">閉じる</button>' +
+          '<button id="apPrintBtn" style="min-height:44px;padding:0 18px;border-radius:12px;border:1px solid #2F8F7A;background:#fff;color:#2F8F7A;font-weight:700;cursor:pointer;">印刷する</button>' +
+          '<button id="apDownloadBtn" style="min-height:44px;padding:0 18px;border-radius:12px;border:none;background:#2F8F7A;color:#fff;font-weight:700;cursor:pointer;">ダウンロード</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    function closeModal(){ document.body.removeChild(overlay); }
+    overlay.querySelector('#apCloseX').addEventListener('click', closeModal);
+    overlay.querySelector('#apCancelBtn').addEventListener('click', closeModal);
+    overlay.querySelector('#apDownloadBtn').addEventListener('click', ()=>{
+      downloadHtml(buildPrintHtml(qImages, aImages, true), '二次方程式プリント_解答.html');
+      showStatus('保存しました');
+    });
+    overlay.querySelector('#apPrintBtn').addEventListener('click', ()=>{
+      openHtmlInNewTab(buildPrintHtml(qImages, aImages, true));
+    });
+    overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeModal(); });
+  }
+
+  answerPreviewBtn.addEventListener('click', async ()=>{
+    const result = await buildOutput(true);
+    if(!result) return;
+    openAnswerPreviewModal(result.qImages, result.aImages);
+  });
+})();
+</script>
+</body>
+</html>
